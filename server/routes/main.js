@@ -4,27 +4,32 @@ const Post = require("../models/Post");
 //Routes
 //GET HOME
 router.get("/", async (req, res) => {
-  const locals = {
-    title: "Blog",
-    description: "Simeple Blogs",
-  };
-  let perPage = 10;
-  let page = req.query.page || 1;
-  const data = await Post.aggregate([{ $sort: { createdAt: -1 } }])
-    .skip(perPage * page - perPage)
-    .limit(perPage)
-    .exec();
+  try {
+    const locals = {
+      title: "Blog",
+      description: "Simeple Blogs",
+    };
+    let perPage = 10;
+    let page = req.query.page || 1;
+    const data = await Post.aggregate([{ $sort: { createdAt: -1 } }])
+      .skip(perPage * page - perPage)
+      .limit(perPage)
+      .exec();
 
-  const count = await Post.countDocuments();
-  const nextPage = parseInt(page) + 1;
-  const hasNextPage = nextPage <= Math.ceil(count / perPage);
+    const count = await Post.countDocuments();
+    const nextPage = parseInt(page) + 1;
+    const hasNextPage = nextPage <= Math.ceil(count / perPage);
 
-  res.render("index", {
-    locals,
-    data,
-    current: page,
-    nextPage: hasNextPage ? nextPage : null,
-  });
+    res.render("index", {
+      locals,
+      data,
+      current: page,
+      nextPage: hasNextPage ? nextPage : null,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Internal Error");
+  }
 });
 
 //get Post id

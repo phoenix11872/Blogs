@@ -6,6 +6,7 @@ const passport = require("passport");
 const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 const adminLayout = "../views/layouts/admin";
 
+//setting up passport for goole auth
 passport.serializeUser((user, done) => {
   done(null, user);
 });
@@ -56,57 +57,146 @@ router.get("/admin", async (req, res) => {
     console.log(err);
   }
 });
-//google
+//google auth
 router.get(
   "/auth/google",
   passport.authenticate("google", {
     scope: ["https://www.googleapis.com/auth/plus.login"],
   })
 );
+//redirects after logging through google
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
   (req, res) => {
     // Successful authentication, redirect;
 
-    res.redirect("/admin/posting");
+    res.redirect("/dashboard");
   }
 );
-
-router.get("/admin/posting", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.send("SUCCESS");
-  } else {
+//middleware to logout
+const logoutMiddleWare = (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    res.clearCookie("connect.sid");
     res.redirect("/");
+    next();
+  });
+};
+//middleWare to check if user logged in or not
+const isLoggedIn = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  } else {
+    return res.status(401).json({ mesage: "Unauthorized" });
+  }
+};
+//for logging out
+router.get("/logout", logoutMiddleWare);
+
+/**
+ * GET- Admin Dashoboard
+ */
+
+router.get("/dashboard", isLoggedIn, async (req, res) => {
+  try {
+    const data = await Post.find();
+    const locals = {
+      title: "admin",
+      description: "Simeple Blogs",
+    };
+    res.render("admin/dashboard", { locals, data, layout: adminLayout });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+/**
+ * GET/Admin create new posts
+ */
+
+router.get("/add-post", isLoggedIn, async (req, res) => {
+  try {
+    const data = await Post.find();
+    const locals = {
+      title: "add Post",
+      description: "Simeple Blogs",
+    };
+    res.render("admin/add-post", { locals, data, layout: adminLayout });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+/**
+ * Post/Admin create new posts
+ */
+
+router.post("/add-post", isLoggedIn, async (req, res) => {
+  try {
+    res.redirect("/dashboard");
+    const newPost = new Post({
+      title: req.body.title,
+      body: req.body.body,
+    });
+    await Post.create(newPost);
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+/**
+ * get /Admin Edit Post
+ */
+
+router.get("/edit-post/:id", isLoggedIn, async (req, res) => {
+  try {
+    const locals = {
+      title: "Edit Post",
+      description: "Simeple Blogs",
+    };
+    const data = await Post.findOne({ _id: req.params.id });
+    res.render("admin/edit-post", {
+      locals,
+      data,
+      layout: adminLayout,
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+/**
+ * Put /Admin Edit Post
+ */
+
+router.put("/edit-post/:id", isLoggedIn, async (req, res) => {
+  try {
+    await Post.findByIdAndUpdate(req.params.id, {
+      title: req.body.title,
+      body: req.body.body,
+      UpdatedAt: Date.now(),
+    });
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+/**
+ * delete /Admin delete Post
+ */
+
+router.delete("/delete-post/:id", isLoggedIn, async (req, res) => {
+  try {
+    await Post.deleteOne({ _id: req.params.id });
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.log(err);
   }
 });
 
 module.exports = router;
-
-// //post admin check login
-// router.post("/admin", async (req, res) => {
-//   try {
-//     const { username, password } = req.body;
-//     if (req.body.username === "admin" && req.body.password === "password") {
-//       res.send("You are Logged IN");
-//     } else {
-//       res.send("wrong username or password");
-//     }
-//   } catch (err) {
-//     console.log(err);
-//   }
-// });
-
-// //post admin register
-// router.post("/register", async (req, res) => {
-//   try {
-//     const { username, password } = req.body;
-//     if (req.body.username === "admin" && req.body.password === "password") {
-//       res.send("You are Logged IN");
-//     } else {
-//       res.send("wrong username or password");
-//     }
-//   } catch (err) {
-//     console.log(err);
-//   }
-// });

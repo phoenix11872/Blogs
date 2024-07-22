@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
       title: "Blog",
       description: "Simeple Blogs",
     };
-    let perPage = 10;
+    let perPage = 5;
     let page = req.query.page || 1;
     const data = await Post.aggregate([{ $sort: { createdAt: -1 } }])
       .skip(perPage * page - perPage)
